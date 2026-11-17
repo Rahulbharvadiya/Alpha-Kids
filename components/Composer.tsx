@@ -53,7 +53,7 @@ export default function Composer({ onSend, loading }: ComposerProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Describe your concern in English or اردو..."
+          placeholder="Share what's on your mind in English or اردو..."
           disabled={loading}
           maxLength={1200}
           className="w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-sm font-body text-text placeholder:text-muted focus:outline-hidden disabled:opacity-50"

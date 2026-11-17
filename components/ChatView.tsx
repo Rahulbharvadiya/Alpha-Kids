@@ -55,10 +55,10 @@ export default function ChatView({
                 <Logo className="h-10 w-10" size={40} />
               </div>
               <h1 className="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-text mb-3">
-                How can I help with your child today?
+                How can I support you today?
               </h1>
-              <p className="max-w-md text-sm text-muted mb-8 leading-relaxed">
-                Ask any parenting concern in English or اردو for a structured, practical plan and follow-up check-in.
+              <p className="max-w-md text-sm text-muted mb-8 leading-relaxed font-body">
+                Share what&apos;s on your mind in English or اردو—whether you need practical guidance, a step-by-step plan, or support on an overwhelming day.
               </p>
 
               {/* Starter Chips */}
