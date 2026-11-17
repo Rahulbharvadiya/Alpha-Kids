@@ -1,0 +1,82 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #f1f0ec;            /* main area */
+  --surface: #fbfbf9;       /* sidebar, cards, composer */
+  --surface-2: #e9e8e3;     /* hover, active row, user bubble */
+  --border: #deddd7;
+  --text: #17171a;
+  --text-muted: #6b6b72;
+  --accent: #1f8f82;        /* plan numbers, links, focus ring */
+  --on-accent: #ffffff;
+  --primary: #111113;       /* send and New chat buttons */
+  --on-primary: #ffffff;
+  --danger-bg: #fdecec;
+  --danger-border: #f0b4b4;
+  --danger-text: #8f2323;
+}
+
+.dark {
+  --bg: #0b0b0c;
+  --surface: #151517;
+  --surface-2: #202023;
+  --border: #2a2a2e;
+  --text: #f1f1f3;
+  --text-muted: #9a9aa3;
+  --accent: #4fc3b4;
+  --on-accent: #07201c;
+  --primary: #f1f1f3;
+  --on-primary: #111113;
+  --danger-bg: #2a1416;
+  --danger-border: #6b2a2f;
+  --danger-text: #ffb3b3;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-danger-text: var(--danger-text);
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+  --font-button: var(--font-button);
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+/* Smooth theme change */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 320ms ease, color 320ms ease,
+              border-color 320ms ease, fill 320ms ease, stroke 320ms ease !important;
+}
+
+/* Urdu text */
+.urdu {
+  font-family: var(--font-urdu), "Noto Naskh Arabic", serif;
+  line-height: 2.1;        /* Nastaliq needs generous line height */
+  font-size: 1.06em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition, html.theme-transition * { transition: none !important; }
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
