@@ -6,8 +6,9 @@ import CoachCard from "./CoachCard";
 import CrisisCard from "./CrisisCard";
 import Composer from "./Composer";
 import Disclaimer from "./Disclaimer";
+import Logo from "./Logo";
 import { isRtl } from "@/lib/lang";
-import { Sparkles, AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 interface ChatViewProps {
   conversation: Conversation | null;
@@ -50,8 +51,8 @@ export default function ChatView({
         <div className="mx-auto max-w-3xl flex flex-col justify-end min-h-full">
           {isEmpty ? (
             <div className="my-auto flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface border border-border text-accent shadow-xs">
-                <Sparkles className="h-7 w-7" />
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface border border-border shadow-xs">
+                <Logo className="h-10 w-10" size={40} />
               </div>
               <h1 className="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-text mb-3">
                 How can I help with your child today?

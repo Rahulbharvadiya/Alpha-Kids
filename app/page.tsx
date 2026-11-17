@@ -5,7 +5,8 @@ import Sidebar from "@/components/Sidebar";
 import ChatView from "@/components/ChatView";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useConversations } from "@/hooks/useConversations";
-import { PanelLeft, Sparkles } from "lucide-react";
+import Logo from "@/components/Logo";
+import { PanelLeft } from "lucide-react";
 
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -29,8 +30,8 @@ export default function Home() {
     // Avoid hydration mismatch while reading localStorage
     return (
       <div className="flex h-dvh w-full items-center justify-center bg-bg text-muted">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 animate-spin text-accent" />
+        <div className="flex items-center gap-3">
+          <Logo className="h-6 w-6 animate-pulse" size={24} />
           <span className="text-sm font-heading">Loading Alpha Kids Coach...</span>
         </div>
       </div>

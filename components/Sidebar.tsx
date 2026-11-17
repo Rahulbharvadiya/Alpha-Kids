@@ -9,8 +9,8 @@ import {
   MoreHorizontal,
   PanelLeftClose,
   MessageSquare,
-  Sparkles,
 } from "lucide-react";
+import Logo from "./Logo";
 import type { Conversation } from "@/lib/types";
 import { groupConversations } from "@/lib/conversations";
 
@@ -80,10 +80,8 @@ export default function Sidebar({
       >
         {/* Header */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-border/60">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-[var(--on-accent)]">
-              <Sparkles className="h-4 w-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <Logo className="h-7 w-7" size={28} />
             <span className="font-heading font-semibold text-lg tracking-tight text-text">
               Alpha Kids
             </span>

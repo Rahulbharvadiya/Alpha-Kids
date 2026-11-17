@@ -1,6 +1,7 @@
 import type { CoachReply } from "@/lib/types";
 import { isRtl } from "@/lib/lang";
-import { Sparkles, HelpCircle } from "lucide-react";
+import Logo from "./Logo";
+import { HelpCircle } from "lucide-react";
 
 interface CoachCardProps {
   reply: CoachReply;
@@ -21,7 +22,7 @@ export default function CoachCard({ reply, isLatest, onQuickReply }: CoachCardPr
     >
       {/* Title or Bot branding if present */}
       <div className="flex items-center gap-2 mb-3 text-accent font-heading font-semibold text-sm">
-        <Sparkles className="h-4 w-4 shrink-0" />
+        <Logo className="h-4 w-4 shrink-0" size={16} />
         <span>{reply.title || (isUrdu ? "الفا کڈز کوچ" : "Alpha Kids Coach")}</span>
       </div>
 
