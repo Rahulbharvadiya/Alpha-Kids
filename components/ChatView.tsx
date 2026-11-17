@@ -58,7 +58,7 @@ export default function ChatView({
                 How can I support you today?
               </h1>
               <p className="max-w-md text-sm text-muted mb-8 leading-relaxed font-body">
-                Share what&apos;s on your mind in English or اردو—whether you need practical guidance, a step-by-step plan, or support on an overwhelming day.
+                Share what&apos;s on your mind—whether you need practical guidance, a step-by-step plan, or support on an overwhelming day.
               </p>
 
               {/* Starter Chips */}

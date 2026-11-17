@@ -7,6 +7,9 @@ A small, safe, bilingual (English and Urdu) AI parenting coach built with Next.j
 ## Features
 
 - **Bilingual & Script Aware:** Responds in natural, conversational English or Urdu (Nastaliq script with proper RTL orientation and generous line-height). Also accepts Roman Urdu and replies in Urdu script.
+- **Voice & Audio Input / Output:**
+  - **Microphone Dictation:** Parents can tap the mic in the composer to speak verbally with real-time live preview and Groq Whisper (`whisper-large-v3-turbo`) transcription.
+  - **Read-Aloud Response:** Tap "Listen" on any coach reply to have the guidance read aloud in English or Urdu via speech synthesis.
 - **Structured Coaching Output:** Every turn includes an empathetic understanding sentence, 3–4 practical immediate steps, a follow-up check-in question, and suggested quick-reply buttons.
 - **Three-Layer Safety Architecture:**
   - **Layer 1 (Server pre-check):** Hard pattern matching intercepts self-harm and medical emergencies before calling the model, returning instant, vetted crisis support.
@@ -127,14 +130,15 @@ Guarded Response Delivered to Client
 ```text
 ├── app/
 │   ├── api/coach/route.ts      # POST: pre-check, Groq inference, validation & output guard
+│   ├── api/transcribe/route.ts # POST: audio speech-to-text with Groq Whisper API
 │   ├── layout.tsx              # Fonts, theme initialization script (no-flash)
 │   ├── page.tsx                # App layout orchestrator (Sidebar + ChatView)
 │   └── globals.css             # Tailwind v4 directives, theme tokens, Urdu typography
 ├── components/
 │   ├── Sidebar.tsx             # Collapsible/drawer sidebar with history grouping, pin & delete
 │   ├── ChatView.tsx            # Main chat container, empty state, and message stream
-│   ├── Composer.tsx            # Auto-growing textarea, char counter, and IME-safe send button
-│   ├── CoachCard.tsx           # Structured coaching response card with quick-reply buttons
+│   ├── Composer.tsx            # Typing bar with mic audio recorder, char counter, and send button
+│   ├── CoachCard.tsx           # Structured coaching response card with quick-reply & listen buttons
 │   ├── CrisisCard.tsx          # High-priority red-tinted alert card for emergency/crisis replies
 │   ├── ThemeToggle.tsx         # Sun/Moon animated theme toggle
 │   └── Disclaimer.tsx          # Medical & legal guidance disclaimer
@@ -146,9 +150,11 @@ Guarded Response Delivered to Client
 │   ├── conversations.ts        # Storage keys, date grouping, and title helpers
 │   └── lang.ts                 # Script analysis & RTL detection
 ├── hooks/
-│   └── useConversations.ts     # Client state management, localStorage sync, abort controllers
+│   ├── useConversations.ts     # Client state management, localStorage sync, abort controllers
+│   └── useAudioRecorder.ts     # Audio recording, live Web Speech API dictation & Whisper sync
 ├── tests/
-│   └── safety.test.ts          # Unit tests for normalization, risk rules, and guards
+│   ├── safety.test.ts          # Unit tests for normalization, risk rules, and guards
+│   └── audio.test.ts           # Unit tests for audio transcription validation
 ├── .env.example
 ├── package.json
 └── README.md
@@ -169,9 +175,8 @@ Guarded Response Delivered to Client
 
 ## Limitations & Next Steps
 
-1. **Locale-Specific Emergency Routing:** Currently, crisis responses state general emergency directives. A future iteration can detect region/country to provide exact national child helplines (e.g., 1098 in India, 112 in EU, 999 in UK/UAE, 911 in US).
+1. **Locale-Specific Emergency Routing:** Currently, crisis responses provide both national (Pakistan 1122/1121) and international (911/988) emergency numbers. A future iteration can use IP geolocation to highlight exact local helplines.
 2. **Streaming Responses:** Support streaming server-sent events (SSE) while preserving JSON schema safety and post-stream guard validation.
-3. **Voice & Audio Support:** Voice input and spoken Urdu/English audio playback for parents with busy hands or differing literacy levels.
 
 ---
 
