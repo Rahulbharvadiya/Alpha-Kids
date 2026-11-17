@@ -110,7 +110,11 @@ export default function ChatView({
                 return (
                   <div key={msg.id} className="flex justify-start">
                     {isCrisis ? (
-                      <CrisisCard reply={reply} />
+                      <CrisisCard
+                        reply={reply}
+                        isLatest={isLatestCoach && !loading}
+                        onQuickReply={onSend}
+                      />
                     ) : (
                       <CoachCard
                         reply={reply}

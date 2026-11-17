@@ -163,32 +163,34 @@ export function fixedCrisisReply(mode: Exclude<Mode, "normal">, ur: boolean): Co
           quickReplies: [],
         };
   }
-  // abuse (used only by the output guard fallback)
+  // abuse (used for safeguarding and de-escalation fallbacks)
   return ur
     ? {
         mode,
         language: "ur",
-        title: "بچے کی حفاظت",
-        understanding: "آپ نے یہ بتایا، یہ آسان نہیں تھا۔ بچے کی فوری حفاظت سب سے پہلے ہے۔",
+        title: "بچے کی حفاظت اور فوری مدد",
+        understanding: "والدین کی ذمہ داری بعض اوقات انسان کو شدید تھکن اور دباؤ میں ڈال دیتی ہے۔ اس وقت آپ اور بچے دونوں کا پرسکون اور محفوظ رہنا سب سے اہم ہے۔",
         plan: [
-          "اگر بچہ ابھی خطرے میں ہے تو فوراً ہنگامی سروس کو کال کریں۔",
-          "بچے کو محفوظ جگہ اور کسی قابلِ اعتماد بالغ کے پاس رکھیں۔",
-          "اپنے علاقے کی چائلڈ پروٹیکشن سروس یا کسی ماہر سے رابطہ کریں۔",
+          "فوراً چند منٹ کے لیے الگ کمرے میں جائیں اور گہرے سانس لیں جبکہ بچے محفوظ جگہ پر ہوں۔",
+          "کسی قریبی اور قابلِ اعتماد بالغ (شریکِ حیات، رشتہ دار یا پڑوسی) کو ابھی بلائیں تاکہ وہ کچھ دیر بچے کی دیکھ بھال کر سکیں۔",
+          "والدین کی رہنمائی کی ہیلپ لائن یا چائلڈ پروٹیکشن سروس سے رابطہ کریں تاکہ آپ کو فوری مشورہ اور مدد مل سکے۔",
+          "اگر کوئی اس وقت فوری جسمانی خطرے میں ہے تو مقامی ہنگامی سروس کو کال کریں۔",
         ],
-        followUp: "کیا بچہ اس وقت محفوظ ہے؟",
-        quickReplies: [],
+        followUp: "کیا آپ ابھی چند منٹ کے لیے الگ کمرے میں جا کر پرسکون سانس لے سکتے ہیں؟",
+        quickReplies: ["میں الگ کمرے میں ہوں", "کسی کو مدد کے لیے بلایا ہے", "ہیلپ لائن کا نمبر چاہیے"],
       }
     : {
         mode,
         language: "en",
-        title: "Child safety",
-        understanding: "Thank you for telling me. That was not easy to say. The child's immediate safety comes first.",
+        title: "Support & Child Safety",
+        understanding: "Parenting can push anyone to their absolute emotional limit, and feeling this overwhelmed is deeply painful. Keeping both you and your children safe right now is what matters most.",
         plan: [
-          "If the child is in danger right now, call your local emergency number.",
-          "Keep the child in a safe place with a trusted adult.",
-          "Contact your local child protection service or a qualified professional for support.",
+          "Take an immediate pause: ensure your children are in a safe room or crib, and step into another room to take slow, calming breaths.",
+          "Call a partner, family member, or trusted neighbor right now to step in so you can have a break.",
+          "Contact a confidential parental stress helpline or local safeguarding service for immediate non-judgmental support.",
+          "If anyone is in immediate physical danger, call your local emergency services right away.",
         ],
-        followUp: "Is the child safe right now?",
-        quickReplies: [],
+        followUp: "Can you take a 5-minute break in another room to breathe right now?",
+        quickReplies: ["Stepping away now", "Called someone to help", "Need helpline numbers"],
       };
 }
