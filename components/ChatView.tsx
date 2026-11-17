@@ -90,7 +90,7 @@ export default function ChatView({
                       dir={rtl ? "rtl" : "ltr"}
                     >
                       <div
-                        className={`max-w-[85%] md:max-w-xl rounded-2xl rounded-tr-xs bg-surface-2 px-4 py-3 text-sm text-text leading-relaxed shadow-2xs whitespace-pre-wrap ${
+                        className={`max-w-[85%] md:max-w-xl rounded-2xl rounded-tr-xs bg-surface-2 px-4 py-3 text-sm font-body text-text leading-relaxed shadow-2xs whitespace-pre-wrap ${
                           rtl ? "urdu" : ""
                         }`}
                       >

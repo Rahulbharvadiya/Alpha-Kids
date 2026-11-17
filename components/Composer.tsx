@@ -56,7 +56,7 @@ export default function Composer({ onSend, loading }: ComposerProps) {
           placeholder="Describe your concern in English or اردو..."
           disabled={loading}
           maxLength={1200}
-          className="w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-sm text-text placeholder:text-muted focus:outline-hidden disabled:opacity-50"
+          className="w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-sm font-body text-text placeholder:text-muted focus:outline-hidden disabled:opacity-50"
         />
 
         <div className="absolute right-2.5 bottom-2.5 flex items-center gap-2">

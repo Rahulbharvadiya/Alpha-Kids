@@ -143,7 +143,7 @@ export default function Sidebar({
                           if (window.innerWidth < 768) onClose();
                         }}
                         aria-current={isActive ? "page" : undefined}
-                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors cursor-pointer ${
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-body transition-colors cursor-pointer ${
                           isActive
                             ? "bg-surface-2 font-medium text-text"
                             : "text-text hover:bg-surface-2/60"

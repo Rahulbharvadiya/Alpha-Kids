@@ -35,13 +35,13 @@ export default function CrisisCard({ reply }: CrisisCardProps) {
         <span>{titleText}</span>
       </div>
 
-      <p className="text-base leading-relaxed mb-4 font-medium opacity-95">
+      <p className="text-base font-body leading-relaxed mb-4 font-medium opacity-95">
         {reply.understanding}
       </p>
 
       {reply.plan.length > 0 && (
         <div className="space-y-2 mb-4">
-          <ol className="list-decimal list-inside space-y-2 text-sm leading-relaxed font-semibold">
+          <ol className="list-decimal list-inside space-y-2 text-sm font-body leading-relaxed font-semibold">
             {reply.plan.map((step, idx) => (
               <li key={idx} className="pl-1">
                 <span className="font-normal">{step}</span>
@@ -52,7 +52,7 @@ export default function CrisisCard({ reply }: CrisisCardProps) {
       )}
 
       {reply.followUp && (
-        <div className="pt-3 border-t border-[var(--danger-border)]/60 text-sm font-medium">
+        <div className="pt-3 border-t border-[var(--danger-border)]/60 text-sm font-body font-medium">
           {reply.followUp}
         </div>
       )}

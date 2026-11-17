@@ -27,7 +27,7 @@ export default function CoachCard({ reply, isLatest, onQuickReply }: CoachCardPr
       </div>
 
       {/* Understanding */}
-      <p className="text-base text-text leading-relaxed mb-4">
+      <p className="text-base font-body text-text leading-relaxed mb-4">
         {reply.understanding}
       </p>
 
@@ -39,7 +39,7 @@ export default function CoachCard({ reply, isLatest, onQuickReply }: CoachCardPr
           </h4>
           <ol className="space-y-2.5">
             {reply.plan.map((step, idx) => (
-              <li key={idx} className="flex items-start gap-3 text-sm text-text leading-relaxed">
+              <li key={idx} className="flex items-start gap-3 text-sm font-body text-text leading-relaxed">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[var(--on-accent)] text-xs font-bold font-heading mt-0.5">
                   {idx + 1}
                 </span>
@@ -56,7 +56,7 @@ export default function CoachCard({ reply, isLatest, onQuickReply }: CoachCardPr
           <div className="flex items-start gap-2">
             <HelpCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-text leading-snug">
+              <p className="text-sm font-body font-medium text-text leading-snug">
                 {reply.followUp}
               </p>
             </div>
