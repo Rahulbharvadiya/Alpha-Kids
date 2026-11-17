@@ -53,6 +53,7 @@ cp .env.example .env.local
 ```
 
 Add your Groq API key:
+https://console.groq.com/keys
 ```bash
 GROQ_API_KEY=gsk_your_groq_api_key_here
 GROQ_MODEL=openai/gpt-oss-120b
