@@ -1,10 +1,13 @@
 import type { CoachReply, Mode } from "./types";
 
 // Map Arabic variants to Urdu forms, strip diacritics and tatweel,
-// convert Eastern digits, lowercase and collapse whitespace.
+// convert typographic quotes/apostrophes, convert Eastern digits,
+// lowercase and collapse whitespace.
 export function normalize(input: string): string {
   return input
     .normalize("NFKC")
+    .replace(/[\u2018\u2019\u02BC\u2032`´]/g, "'") // typographic apostrophes to straight quote
+    .replace(/[\u201C\u201D\u2033]/g, '"') // typographic double quotes to straight
     .replace(/[\u064B-\u065F\u0670\u0640]/g, "") // diacritics, tatweel
     .replace(/\u064A|\u0649/g, "\u06CC") // ي ى -> ی
     .replace(/\u0643/g, "\u06A9") // ك -> ک
@@ -17,60 +20,104 @@ export function normalize(input: string): string {
     .trim();
 }
 
-type Rule = { mode: Exclude<Mode, "normal">; level: "hard" | "soft"; re: RegExp };
+type Rule = {
+  mode: Exclude<Mode, "normal">;
+  level: "hard" | "soft";
+  re: RegExp;
+  negationRe?: RegExp; // Optional negative pattern: if matches, suppress rule
+};
 
-// Patterns are applied to normalized text. Keep them readable and easy to extend.
-// Broad matches are acceptable here: a false alarm is far safer than a miss.
+// Patterns are applied to normalized text.
+// Designed with stem matching, negation/context awareness, and Unicode script boundaries.
 const RULES: Rule[] = [
   // ---- Self-harm (hard) ----
+  // Covers parent, adult, and child self-harm disclosures
   {
     mode: "self_harm",
     level: "hard",
-    re: /(kill myself|end my life|suicid|want to die|wanna die|hurt myself|harm myself|no reason to live|better off without me)/,
+    re: /(kill\w*\s+myself|hurt\w*\s+myself|harm\w*\s+myself|end\w*\s+(my|it|all)\b|end\w*\s+my\s+life|suicid\w*|want\w*\s+to\s+die|wanna\s+die|no\s+reason\s+to\s+live|better\s+off\s+without\s+me|(don'?t|dont|not)\s+want\s+to\s+be\s+alive|want\s+to\s+end\s+it\s+all)/,
   },
+  // Child / third-party self-harm disclosure
   {
     mode: "self_harm",
     level: "hard",
-    re: /(khudkushi|khud kushi|marna chahta|marna chahti|apni jaan|jaan dena|mar jana chahta|mar jana chahti)/,
+    re: /(child|son|daughter|kid|baby|boy|girl|\d+\s?year\s+old|she|he)\b.*?(said|says|wants|wanting|talk\w*|think\w*).*?(want\w*\s+to\s+die|kill\w*\s+(him|her)?self|suicid\w*|end\w*\s+(his|her)\s+life|hurt\w*\s+(him|her)?self)|(said|says)\s+(she|he|they)?\s*want\w*\s+to\s+die/,
   },
+  // Roman Urdu self-harm
   {
     mode: "self_harm",
     level: "hard",
-    re: /(خودکشی|خود کشی|مرنا چاہت|مر جانا چاہت|اپنی جان|خود کو نقصان|زندگی ختم)/,
+    re: /(khudkushi|khud\s+kushi|marna\s+chaht\w*|apni\s+jaan\b|jaan\s+den\w*|mar\s+jana\s+chaht\w*|zindagi\s+khatam)/,
+  },
+  // Urdu script self-harm
+  {
+    mode: "self_harm",
+    level: "hard",
+    re: /(خودکشی|خود\s*کشی|مرنا\s+چاہت|مر\s+جانا\s+چاہت|اپنی\s+جان|خود\s+کو\s+نقصان|زندگی\s+ختم)/,
   },
 
   // ---- Emergency (hard) ----
+  // Acute breathing, unresponsiveness, battery/poisoning, heavy bleeding, seizure
   {
     mode: "emergency",
     level: "hard",
-    re: /(not breathing|can'?t breathe|cannot breathe|stopped breathing|choking|unconscious|unresponsive|seizure|convulsing|bleeding (heavily|a lot|badly)|swallowed (a )?(battery|magnet|pill|pills|poison|bleach|detergent)|overdos|poison|drown|severe burn|anaphyla|ambulance|turning blue)/,
+    re: /((can'?t|cannot|is(n'?t)?|stopped|not)\s+breath(e|ing)|choking|unconscious|unresponsive|limp\b.*?(won'?t|cannot|can'?t|not)\s+wake|convulsing|bleeding\s+(heavily|a lot|badly|profusely)|swallowed\s+(a\s+)?(battery|magnet|pill|pills|poison|bleach|detergent)|overdos\w*|anaphyla\w*|turning\s+blue)/,
+    // Context exclusions: poison ivy, choking hazard questions, overdose of screens/sugar, past seizure history
+    negationRe: /(poison\s+(ivy|oak|sumac)|choking\s+hazard|overdose\s+of\s+(screen|screens|sugar|caffeine|tv|youtube|love|fun|media)|(last\s+year|years\s+ago|months\s+ago|in\s+the\s+past|when\s+(he|she|they)\s+was)\b.*?(seizure|convulsing)|had\s+a\s+(febrile\s+)?seizure\s+(last|months|years|in\s+the\s+past))/,
   },
+  // Seizure / acute medical events (standalone, if not past history)
   {
     mode: "emergency",
     level: "hard",
-    re: /(saans nahi|sans nahi|behosh|bayhosh|khoon (beh|bah)|zehar|zahar|nigal liya|doob gaya|doob gayi|daura pada|dora para|ambulance)/,
+    re: /\b(seizure|active\s+seizure)\b/,
+    negationRe: /(last\s+year|years\s+ago|months\s+ago|in\s+the\s+past|previously|when\s+(he|she|they)\s+was|had\s+a\s+(febrile\s+)?seizure)/,
   },
+  // Acute drowning (excluding fear of swimming/drowning)
   {
     mode: "emergency",
     level: "hard",
-    re: /(سانس نہیں|بے ہوش|بیہوش|خون بہہ|خون بہ رہا|زہر|نگل لیا|ڈوب|دورہ پڑ|ایمبولینس|نیلا پڑ)/,
+    re: /\b(drown\w*)\b/,
+    negationRe: /(scared\s+of|afraid\s+of|fear\s+of|refus\w*|nightmare\s+about|drowning\s+in\s+(work|chores|laundry|stress))/,
+  },
+  // Roman Urdu emergency
+  {
+    mode: "emergency",
+    level: "hard",
+    re: /(saans\s+nahi|sans\s+nahi|behosh|bayhosh|khoon\s+(beh|bah)|zehar|zahar|nigal\s+liya|doob\s+gaya|doob\s+gayi|daura\s+pada|dora\s+para|ambulance)/,
+  },
+  // Urdu script emergency
+  {
+    mode: "emergency",
+    level: "hard",
+    re: /(سانس\s+نہیں|بے\s*ہوش|بیہوش|خون\s+بہہ|خون\s+بہ\s+رہا|زہر|نگل\s+لیا|ڈوب\s+گیا|ڈوب\s+گئی|دورہ\s+پڑ|ایمبولینس|نیلا\s+پڑ)/,
   },
 
-  // ---- Abuse (soft: let the model handle tone, with a safety-first hint) ----
+  // ---- Abuse / Severe Loss of Control (soft or hard depending on severity) ----
+  // Shaken baby syndrome (hard safety trigger)
   {
     mode: "abuse",
-    level: "soft",
-    re: /(abus|molest|sexual(ly)?|inappropriate(ly)? touch|beat(ing)? (him|her|the child|my child|my son|my daughter)|hit (him|her|my child|my son|my daughter)|hurt (him|her|my child)|afraid (he|she|they) (will|might) hurt|scared i('m| am)? going to hurt|lose control with (him|her|my child)|being hurt)/,
+    level: "hard",
+    re: /(shook|shak(e|ing))\b.*?(baby|infant|toddler|child|son|daughter)/,
   },
+  // Abuse / physical harm in English
   {
     mode: "abuse",
     level: "soft",
-    re: /(\bma+r(a|i|e|ta|ti|na|ne|unga|ungi)?\b|peet(a|i|na|ne)?|pit(ta|ti|ai)|marpeet|zulm|tashaddud|jinsi|ghalat tareeqe se chhua)/,
+    re: /(abus\w*|molest\w*|sexual(ly)?\s+(abus\w*|assault\w*|touch\w*|exploit\w*|inappropriate\w*|conduct)|inappropriate(ly)?\s+touch\w*|slap(ped|ping)?\b.*?(son|daughter|child|kid|baby|toddler|him|her)|spank(ed|ing)?\b.*?(bruise|mark|belt|hard)|beat(ing)?\s+(him|her|the\s+child|my\s+child|my\s+son|my\s+daughter|kids)|hit(ting)?\s+(him|her|my\s+child|my\s+son|my\s+daughter)|hurt(ing)?\s+(him|her|my\s+child)|afraid\s+(he|she|they)\s+(will|might)\s+hurt|scared\s+i('m|\s+am)?\s+going\s+to\s+hurt|lose\s+control\s+with\s+(him|her|my\s+child)|being\s+hurt)/,
+    // Context exclusion: sexual education / puberty discussions
+    negationRe: /(sex(ual)?\s+education|talk\w*\s+about\s+sex|puberty)/,
   },
+  // Roman Urdu abuse with strict word boundaries
   {
     mode: "abuse",
     level: "soft",
-    re: /(بدسلوکی|جنسی|مار پیٹ|مارتا ہوں|مارتی ہوں|مارا ہے|مارا|تشدد|ظلم|غلط طریقے سے چھو)/,
+    re: /(\bma+r(a|i|e|ta|ti|na|ne|unga|ungi)\b|\bpeet(a|i|na|ne)\b|\bpit(ta|ti|ai)\b|\bmarpeet\b|\bzulm\b|\btashaddud\b|\bjinsi\b|\bghalat\s+tareeqe\s+se\s+chhua\b)/,
+  },
+  // Urdu script abuse with Unicode script boundaries (prevents false match on ہمارا / our child)
+  {
+    mode: "abuse",
+    level: "soft",
+    re: /(?<![\u0600-\u06FF])(بدسلوکی|جنسی\s+تشدد|مار\s*پیٹ|مارتا\s+ہوں|مارتی\s+ہوں|مارا\s+ہے|مارا|تشدد|ظلم|غلط\s+طریقے\s+سے\s+چھو)(?![\u0600-\u06FF])/,
   },
 ];
 
@@ -84,6 +131,9 @@ export function assessRisk(text: string): Risk {
   let best: Risk = { level: "none", mode: "normal" };
   for (const r of RULES) {
     if (!r.re.test(t)) continue;
+    // If a negative context rule is specified and matches, skip this rule
+    if (r.negationRe && r.negationRe.test(t)) continue;
+
     const better =
       LEVEL_RANK[r.level] > LEVEL_RANK[best.level] ||
       (r.level === best.level && SEVERITY[r.mode] > SEVERITY[best.mode]);
@@ -99,11 +149,7 @@ export function mostSevere(a: Mode, b: Mode): Mode {
 export const hasUrdu = (t: string) => /[\u0600-\u06FF]/.test(t);
 
 // ---- Fixed crisis replies (no model involved) ----
-// Emergency numbers differ by country. Keep the text region-neutral and
-// verify any number before adding it. Example constants for demo purposes only.
-const EXAMPLE_NUMBERS_EN = "For example, 112 in India or 999 in the UAE. Numbers differ by country.";
-const EXAMPLE_NUMBERS_UR = "مثال کے طور پر بھارت میں 112 یا متحدہ عرب امارات میں 999۔ نمبر ہر ملک میں مختلف ہوتے ہیں۔";
-
+// Region-neutral crisis guidance directing to local crisis lines without hardcoded numbers.
 export function fixedCrisisReply(mode: Exclude<Mode, "normal">, ur: boolean): CoachReply {
   if (mode === "emergency") {
     return ur
@@ -111,26 +157,26 @@ export function fixedCrisisReply(mode: Exclude<Mode, "normal">, ur: boolean): Co
           mode,
           language: "ur",
           title: "ہنگامی صورتحال",
-          understanding: "یہ ایک ہنگامی صورتحال لگتی ہے۔ اس وقت فوری مدد سب سے اہم ہے۔",
+          understanding: "یہ ایک ہنگامی صورتحال لگتی ہے۔ اس وقت فوری طبی مدد سب سے اہم ہے۔",
           plan: [
-            "ابھی اپنے علاقے کی ہنگامی سروس کو کال کریں۔ " + EXAMPLE_NUMBERS_UR,
-            "بچے کے ساتھ رہیں اور اگر قریب کوئی بالغ ہے تو اسے فوراً بلائیں۔",
-            "ہنگامی سروس کی ہدایات پر عمل کریں۔",
+            "ابھی اپنے علاقے کی ہنگامی سروس کو کال کریں۔",
+            "بچے کے ساتھ رہیں، اکیلا نہ چھوڑیں، اور اگر قریب کوئی بالغ ہے تو اسے فوراً بلائیں۔",
+            "اگر دم گھٹنے کا خدشہ ہے تو بچے کی پیٹھ پر ہلکی تھپکیاں دیں اور ایمرجنسی آپریٹر کی ہدایات پر عمل کریں۔",
           ],
-          followUp: "کیا آپ نے مدد کے لیے کال کر لی ہے؟",
+          followUp: "کیا آپ نے ہنگامی مدد کے لیے کال کر لی ہے؟",
           quickReplies: [],
         }
       : {
           mode,
           language: "en",
           title: "Emergency help",
-          understanding: "This sounds like an emergency. Getting help right now matters more than anything else.",
+          understanding: "This sounds like an emergency. Getting immediate medical help right now matters more than anything else.",
           plan: [
-            "Call your local emergency number now. " + EXAMPLE_NUMBERS_EN,
-            "Stay with your child, and call any adult nearby to help right away.",
-            "Follow the instructions the emergency operator gives you.",
+            "Call your local emergency services immediately.",
+            "Stay with your child, do not leave them unattended, and call any adult nearby to assist.",
+            "If choking or unresponsive, follow the emergency dispatcher's immediate instructions.",
           ],
-          followUp: "Have you been able to call for help?",
+          followUp: "Have you been able to call for emergency help?",
           quickReplies: [],
         };
   }
@@ -139,27 +185,29 @@ export function fixedCrisisReply(mode: Exclude<Mode, "normal">, ur: boolean): Co
       ? {
           mode,
           language: "ur",
-          title: "فوری مدد",
-          understanding: "آپ نے جو بتایا وہ بہت سنجیدہ ہے، اور آپ کی حفاظت سب سے پہلے ہے۔ آپ اس میں اکیلے نہیں ہیں۔",
+          title: "فوری حفاظتی مدد",
+          understanding: "آپ نے جو بتایا وہ انتہائی سنجیدہ ہے اور زندگی کا تحفظ سب سے پہلے ہے۔ آپ اور آپ کا بچہ اس میں اکیلے نہیں ہیں۔",
           plan: [
-            "اگر آپ اس وقت خطرے میں ہیں تو ابھی اپنی مقامی ہنگامی سروس کو کال کریں۔ " + EXAMPLE_NUMBERS_UR,
-            "کسی قابلِ اعتماد شخص کو ابھی اپنے پاس بلائیں، جیسے خاندان کا فرد، دوست یا پڑوسی۔",
-            "اپنے علاقے کی بحران یا ذہنی صحت کی ہیلپ لائن سے رابطہ کریں۔",
+            "پرسکون رہیں اور اپنے یا بچے کے پاس موجود تمام نقصان دہ اشیاء (دوائیں، تیز دھار اوزار) فوراً ہٹا دیں۔",
+            "اگر بچہ یا کوئی فرد خطرے میں ہے تو اسے اس وقت بالکل اکیلا نہ چھوڑیں۔",
+            "اگر آپ کو لگے کہ آپ ان خیالات پر عمل کر سکتے ہیں تو فوری طور پر مقامی کرائسس ہیلپ لائن یا ہنگامی سروس سے رابطہ کریں۔",
+            "کسی قریبی اور قابلِ اعتماد بالغ کو فوری طور پر اپنے پاس بلائیں۔",
           ],
-          followUp: "کیا آپ کے پاس اس وقت کوئی ہے جو آپ کے ساتھ رہ سکے؟",
+          followUp: "کیا آپ کے پاس اس وقت کوئی قابلِ اعتماد شخص موجود ہے یا آپ نے کال کی ہے؟",
           quickReplies: [],
         }
       : {
           mode,
           language: "en",
-          title: "Urgent support",
-          understanding: "What you shared is serious, and your safety comes first. You are not alone in this.",
+          title: "Urgent crisis support",
+          understanding: "What was shared is critical, and safety comes first. You and your child are not alone in this.",
           plan: [
-            "If you may act on these thoughts, call your local emergency number now. " + EXAMPLE_NUMBERS_EN,
-            "Ask someone you trust to come be with you right away, such as family, a friend or a neighbour.",
-            "Contact a crisis or mental health helpline in your area.",
+            "Stay calm and stay with the person. Do not leave your child or yourself alone right now.",
+            "Remove any immediate means of harm (medications, sharp objects) from reach.",
+            "Call a local crisis helpline or emergency services if you feel you might act on these thoughts.",
+            "Ask a trusted relative, partner, or neighbor to come be with you right away.",
           ],
-          followUp: "Is there someone who can be with you right now?",
+          followUp: "Is there someone with you right now, or have you reached out to a helpline?",
           quickReplies: [],
         };
   }

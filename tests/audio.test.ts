@@ -42,8 +42,25 @@ async function runTests() {
     assert(res2.status === 500, "Missing API key returns 500 status");
     assert(data2.error === "server_misconfigured", "Error code is 'server_misconfigured'");
   } finally {
-    process.env.GROQ_API_KEY = originalKey;
+    if (originalKey === undefined) {
+      delete process.env.GROQ_API_KEY;
+    } else {
+      process.env.GROQ_API_KEY = originalKey;
+    }
   }
+
+  // 3. Invalid MIME type returns 400
+  const invalidMimeForm = new FormData();
+  const textBlob = new Blob(["not audio"], { type: "text/plain" });
+  invalidMimeForm.append("file", textBlob, "doc.txt");
+  const reqInvalidMime = new NextRequest("http://localhost:3000/api/transcribe", {
+    method: "POST",
+    body: invalidMimeForm,
+  });
+  const res3 = await POST(reqInvalidMime);
+  const data3 = await res3.json();
+  assert(res3.status === 400, "Invalid mime type returns 400");
+  assert(data3.error === "invalid_file_type", "Invalid mime error code is 'invalid_file_type'");
 
   console.log("\n=================================");
   console.log("🎉 ALL AUDIO TESTS PASSED!");

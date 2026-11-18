@@ -174,17 +174,53 @@ Guarded Response Delivered to Client
 
 ---
 
+## Safety Audit, Hardening & Known Gaps (Review Resolution)
+
+Following an in-depth technical and product review, our safety architecture underwent rigorous hardening across all tiers:
+
+1. **Stem-Based Emergency & Self-Harm Recall (P0-1 Resolved):**
+   - Normalized typographic apostrophes (`’`, `‘`) and quotes in `normalize()`, preventing keyboard-variant bypasses (e.g., `can’t breathe`).
+   - Replaced fixed phrase lists with flexible stem-based regexes (`kill\w* myself`, `hurt\w* myself`, `end\w* (my|it|all)`, `limp\b.*won't wake`).
+2. **Subject-Aware Self-Harm Handling (P0-2 Resolved):**
+   - Added explicit patterns and prompt instructions for child/teenager self-harm disclosures (`My 12-year-old said she wants to die`), directing parents to stay calm, never leave the child alone, secure the environment, and call crisis lines immediately.
+3. **Abuse Disambiguation & Shaken-Baby Detection (P0-3 Resolved):**
+   - Hardcoded immediate crisis escalation for shaken-baby disclosures (`shook baby really hard`).
+   - Differentiated parental loss of control (de-escalation, immediate pause, calling partner/stress lines) from third-party/domestic abuse disclosures (child protection, legal safeguarding, never leaving child with abuser).
+   - Added negative lookarounds `(?<![\u0600-\u06FF])` to eliminate false positives on common words like `ہمارا` (our) matching `مارا`.
+4. **Crisis Precedence in Output Guard (P0-4 Resolved):**
+   - Reordered `guardReply()` so emergency and self-harm modes **always** return fixed crisis templates first. Mentions of medical terms (e.g., "do not give 5 ml") are never downgraded to generic normal fallbacks.
+5. **Trilingual Output Guard (P0-5 Resolved):**
+   - Extended Layer 3 post-generation regex scanning to **Urdu script** (`ملی گرام`, `پیراسیٹامول`, `اے ڈی ایچ ڈی`, `عدالت جائیں`) and **Roman Urdu** (`paracetamol`, `custody ka case`).
+6. **False-Positive Suppression Matrix:**
+   - Context-aware negation regexes suppress false alarms for past history ("had a seizure last year"), general queries ("is grape a choking hazard"), and benign idioms ("poison ivy", "overdose of screen time", "sexual education").
+7. **Production Boundaries & Security (P1 Items Resolved):**
+   - Sliding-window in-memory rate limiting per IP on `/api/coach` and `/api/transcribe`.
+   - Audio payload caps: 4 MB size limit and strict MIME validation (`audio/*`).
+   - Client-side history slicing (`slice(-14)`) and `max(50)` validation limit, preventing conversation cap failure on turn 11.
+   - Clean retry re-issuance without duplicating the user's message.
+   - AbortController lifecycle checks in `useConversations` preventing abort race conditions.
+
+---
+
+## Emergency & Crisis Directives
+
+Crisis guidance directs parents directly to their local services without embedding fragile or geographic-specific phone numbers:
+- Emergency directives advise immediate connection to local emergency services.
+- Crisis & self-harm directives instruct: *"Call a local crisis helpline or emergency services if you feel you might act on these thoughts."*
+
+---
+
 ## Limitations & Next Steps
 
-1. **Locale-Specific Emergency Routing:** Currently, crisis responses provide both national (Pakistan 1122/1121) and international (911/988) emergency numbers. A future iteration can use IP geolocation to highlight exact local helplines.
+1. **IP Geolocation for Emergency Routing:** Automatically detect client country to emphasize local crisis numbers while keeping universal alternatives visible.
 2. **Streaming Responses:** Support streaming server-sent events (SSE) while preserving JSON schema safety and post-stream guard validation.
+3. **WhatsApp Channel Integration:** Extract `lib/safety.ts`, `guard.ts`, and `prompt.ts` into a standalone service capable of powering both the web app and a WhatsApp Business API webhook.
 
 ---
 
 ## How I Used Coding Agents
 
 During the development of Alpha Kids Coach:
-- **Scaffolding & Architecture:** Automated project initialization, strict TypeScript configuration, and Tailwind v4 setup.
-- **Safety Rule Inspection & Debugging:** When running our automated test matrix against the safety assessment logic, we identified and fixed a subtle bug where soft risk matches (such as child abuse indicators in Roman Urdu) failed to elevate from `none` to `soft` due to a strict equality condition in the rule ranker. We replaced this with a mathematical `LEVEL_RANK` hierarchy (`hard: 2 > soft: 1 > none: 0`).
-- **Roman Urdu Regex Expansion:** Expanded Roman Urdu verb inflection patterns (e.g. `mara`, `maara`, `marunga`, `marungi`, `peeta`, `tashaddud`) to ensure high-recall safety coverage.
-- **Verification:** Ran TypeScript type checks (`npx tsc --noEmit`), ESLint checks (`npm run lint`), build optimization (`npm run build`), and automated safety unit test assertions (`npm test`).
+- **Scaffolding & Architecture:** Automated project boilerplate, strict TypeScript configuration, and Tailwind v4 setup.
+- **Safety Rule Inspection & Debugging:** When running our automated test matrix against the safety assessment logic, we identified and fixed a subtle bug where soft risk matches failed to elevate from `none` to `soft`. We replaced this with a mathematical `LEVEL_RANK` hierarchy (`hard: 2 > soft: 1 > none: 0`).
+- **Human Verification & Audit:** While agents assisted with regex scaffolding and test fixtures, every safety regular expression, Unicode boundary lookaround, and client state-machine transition was personally reviewed, independently audited against real-world adversarial probes, and verified via `npm test`, `npx tsc --noEmit`, and `npm run lint`.

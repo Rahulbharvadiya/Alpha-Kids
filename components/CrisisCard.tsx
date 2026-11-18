@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { AlertTriangle, ShieldCheck, HeartHandshake, Volume2, VolumeX } from "lucide-react";
 import type { CoachReply } from "@/lib/types";
 import { isRtl } from "@/lib/lang";
+import { useSpeech } from "@/hooks/useSpeech";
 
 interface CrisisCardProps {
   reply: CoachReply;
@@ -12,30 +12,16 @@ interface CrisisCardProps {
 }
 
 export default function CrisisCard({ reply, isLatest = false, onQuickReply }: CrisisCardProps) {
-  const [speaking, setSpeaking] = useState(false);
+  const { speaking, speak, stop } = useSpeech();
   const isUrdu = reply.language === "ur" || isRtl(reply.understanding + " " + reply.followUp);
   const dir = isUrdu ? "rtl" : "ltr";
   const urduClass = isUrdu ? "urdu" : "";
 
-  // Stop speech when unmounting
-  useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
   const handleToggleSpeak = () => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-
     if (speaking) {
-      window.speechSynthesis.cancel();
-      setSpeaking(false);
+      stop();
       return;
     }
-
-    window.speechSynthesis.cancel();
 
     const textToSpeak = [
       reply.understanding,
@@ -45,23 +31,7 @@ export default function CrisisCard({ reply, isLatest = false, onQuickReply }: Cr
       .filter(Boolean)
       .join(". ");
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = isUrdu ? "ur-PK" : "en-US";
-    utterance.rate = 0.95;
-
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find((v) =>
-      isUrdu ? v.lang.startsWith("ur") : v.lang.startsWith("en")
-    );
-    if (voice) {
-      utterance.voice = voice;
-    }
-
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    speak(textToSpeak, isUrdu);
   };
 
   const titleText =

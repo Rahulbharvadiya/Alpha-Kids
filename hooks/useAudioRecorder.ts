@@ -2,10 +2,45 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// Web Speech API interface definitions for TypeScript
-interface IWindowSpeechRecognition extends Window {
-  SpeechRecognition?: any;
-  webkitSpeechRecognition?: any;
+// Web Speech API interface definitions for TypeScript (strict, zero any)
+export interface ISpeechRecognitionResultItem {
+  transcript: string;
+  confidence: number;
+}
+
+export interface ISpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  [index: number]: ISpeechRecognitionResultItem;
+}
+
+export interface ISpeechRecognitionEvent {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: ISpeechRecognitionResult;
+  };
+}
+
+export interface ISpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  lang: string;
+  onresult: ((event: ISpeechRecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+export interface ISpeechRecognitionConstructor {
+  new (): ISpeechRecognitionInstance;
+}
+
+export interface IWindowSpeechRecognition extends Window {
+  SpeechRecognition?: ISpeechRecognitionConstructor;
+  webkitSpeechRecognition?: ISpeechRecognitionConstructor;
 }
 
 export interface AudioRecorderState {
@@ -29,7 +64,7 @@ export function useAudioRecorder() {
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const speechRecognitionRef = useRef<any>(null);
+  const speechRecognitionRef = useRef<ISpeechRecognitionInstance | null>(null);
   const speechFinalTranscriptRef = useRef<string>("");
 
   // Check microphone support on mount
@@ -130,7 +165,7 @@ export function useAudioRecorder() {
           recognition.interimResults = true;
           recognition.maxAlternatives = 1;
 
-          recognition.onresult = (event: any) => {
+          recognition.onresult = (event: ISpeechRecognitionEvent) => {
             let interim = "";
             let final = "";
             for (let i = 0; i < event.results.length; i++) {

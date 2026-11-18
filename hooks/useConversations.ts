@@ -98,69 +98,29 @@ export function useConversations() {
 
   const remove = useCallback(
     (id: string) => {
-      setConversations((prev) => {
-        const next = prev.filter((c) => c.id !== id);
-        if (activeId === id) {
-          if (next.length > 0) {
-            setActiveId(next[0].id);
-            setActiveDraft(null);
-          } else {
-            const fresh = newConversation();
-            setActiveDraft(fresh);
-            setActiveId(fresh.id);
-          }
+      const next = conversations.filter((c) => c.id !== id);
+      setConversations(next);
+
+      if (activeId === id) {
+        if (next.length > 0) {
+          setActiveId(next[0].id);
+          setActiveDraft(null);
+        } else {
+          const fresh = newConversation();
+          setActiveDraft(fresh);
+          setActiveId(fresh.id);
         }
-        return next;
-      });
-      if (activeDraft?.id === id) {
+      } else if (activeDraft?.id === id) {
         const fresh = newConversation();
         setActiveDraft(fresh);
         setActiveId(fresh.id);
       }
     },
-    [activeId, activeDraft]
+    [conversations, activeId, activeDraft]
   );
 
-  const send = useCallback(
-    async (text: string) => {
-      if (!text.trim() || loading) return;
-
-      const userMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: text.trim(),
-        ts: Date.now(),
-      };
-
-      const currentConv = activeConversation;
-      const isFirstTurn = !currentConv || currentConv.messages.length === 0;
-
-      const updatedMessages = currentConv ? [...currentConv.messages, userMsg] : [userMsg];
-      const convId = currentConv?.id ?? crypto.randomUUID();
-
-      // Optimistically update conversation state
-      if (isFirstTurn) {
-        const newConv: Conversation = {
-          id: convId,
-          title: fallbackTitle(text),
-          pinned: false,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          messages: updatedMessages,
-        };
-        setActiveDraft(null);
-        setConversations((prev) => [newConv, ...prev.filter((c) => c.id !== convId)]);
-        setActiveId(convId);
-      } else {
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === convId
-              ? { ...c, messages: updatedMessages, updatedAt: Date.now() }
-              : c
-          )
-        );
-      }
-
+  const executeCoachCall = useCallback(
+    async (convId: string, messagesToSend: ChatMessage[], isFirstTurn: boolean) => {
       setLoading(true);
       setError(null);
 
@@ -170,7 +130,8 @@ export function useConversations() {
       abortRef.current = controller;
 
       try {
-        const apiMessages = toApiMessages(updatedMessages);
+        // P1-2 Fix: Slice on client before sending to ensure history never exceeds server validation limits
+        const apiMessages = toApiMessages(messagesToSend).slice(-14);
         const res = await fetch("/api/coach", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -223,23 +184,82 @@ export function useConversations() {
           "You appear to be offline. Check your connection and retry.";
         setError(msg);
       } finally {
-        setLoading(false);
-        abortRef.current = null;
+        // P1-6 Fix: Only reset state if this controller is still the active one
+        if (abortRef.current === controller) {
+          setLoading(false);
+          abortRef.current = null;
+        }
       }
     },
-    [activeConversation, loading]
+    []
   );
 
-  const retryLast = useCallback(() => {
-    if (!activeConversation) return;
-    const msgs = activeConversation.messages;
-    const lastUser = [...msgs].reverse().find((m) => m.role === "user");
-    if (!lastUser) return;
+  const send = useCallback(
+    async (text: string) => {
+      if (!text.trim() || loading) return;
 
-    // Remove any trailing messages after the user message if needed, or simply re-send
+      const userMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: text.trim(),
+        ts: Date.now(),
+      };
+
+      const currentConv = activeConversation;
+      const isFirstTurn = !currentConv || currentConv.messages.length === 0;
+
+      const updatedMessages = currentConv ? [...currentConv.messages, userMsg] : [userMsg];
+      const convId = currentConv?.id ?? crypto.randomUUID();
+
+      // Optimistically update conversation state
+      if (isFirstTurn) {
+        const newConv: Conversation = {
+          id: convId,
+          title: fallbackTitle(text),
+          pinned: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messages: updatedMessages,
+        };
+        setActiveDraft(null);
+        setConversations((prev) => [newConv, ...prev.filter((c) => c.id !== convId)]);
+        setActiveId(convId);
+      } else {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: updatedMessages, updatedAt: Date.now() }
+              : c
+          )
+        );
+      }
+
+      await executeCoachCall(convId, updatedMessages, isFirstTurn);
+    },
+    [activeConversation, loading, executeCoachCall]
+  );
+
+  const retryLast = useCallback(async () => {
+    if (!activeConversation || loading) return;
+    const msgs = activeConversation.messages;
+    const lastUserIdx = msgs.map((m) => m.role).lastIndexOf("user");
+    if (lastUserIdx === -1) return;
+
+    // P1-5 Fix: Prune any trailing messages after the user message and re-send without duplicating
+    const trimmedMsgs = msgs.slice(0, lastUserIdx + 1);
+    const isFirstTurn = trimmedMsgs.length === 1;
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === activeConversation.id
+          ? { ...c, messages: trimmedMsgs }
+          : c
+      )
+    );
+
     setError(null);
-    send(lastUser.content);
-  }, [activeConversation, send]);
+    await executeCoachCall(activeConversation.id, trimmedMsgs, isFirstTurn);
+  }, [activeConversation, loading, executeCoachCall]);
 
   return {
     conversations,

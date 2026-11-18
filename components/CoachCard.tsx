@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import type { CoachReply } from "@/lib/types";
 import { isRtl } from "@/lib/lang";
 import Logo from "./Logo";
 import { HelpCircle, Volume2, VolumeX } from "lucide-react";
+import { useSpeech } from "@/hooks/useSpeech";
 
 interface CoachCardProps {
   reply: CoachReply;
@@ -13,31 +13,17 @@ interface CoachCardProps {
 }
 
 export default function CoachCard({ reply, isLatest, onQuickReply }: CoachCardProps) {
-  const [speaking, setSpeaking] = useState(false);
+  const { speaking, speak, stop } = useSpeech();
   const combinedText = [reply.understanding, ...reply.plan, reply.followUp].join(" ");
   const isUrdu = reply.language === "ur" || isRtl(combinedText);
   const dir = isUrdu ? "rtl" : "ltr";
   const urduClass = isUrdu ? "urdu" : "";
 
-  // Stop speech when unmounting
-  useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
   const handleToggleSpeak = () => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-
     if (speaking) {
-      window.speechSynthesis.cancel();
-      setSpeaking(false);
+      stop();
       return;
     }
-
-    window.speechSynthesis.cancel();
 
     const textToSpeak = [
       reply.understanding,
@@ -47,24 +33,7 @@ export default function CoachCard({ reply, isLatest, onQuickReply }: CoachCardPr
       .filter(Boolean)
       .join(". ");
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = isUrdu ? "ur-PK" : "en-US";
-    utterance.rate = 0.95;
-
-    // Pick appropriate voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find((v) =>
-      isUrdu ? v.lang.startsWith("ur") : v.lang.startsWith("en")
-    );
-    if (voice) {
-      utterance.voice = voice;
-    }
-
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    speak(textToSpeak, isUrdu);
   };
 
   return (

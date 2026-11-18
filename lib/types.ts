@@ -6,11 +6,11 @@ export type Mode = (typeof MODES)[number];
 export const CoachReplySchema = z.object({
   mode: z.enum(MODES),
   language: z.enum(["en", "ur"]),
-  title: z.string().max(60).optional(), // first turn only
-  understanding: z.string().max(400),
-  plan: z.array(z.string().max(220)).max(5), // empty for crisis modes
-  followUp: z.string().max(240),
-  quickReplies: z.array(z.string().max(60)).max(3).default([]),
+  title: z.string().max(100).optional(), // first turn only
+  understanding: z.string().max(800),
+  plan: z.array(z.string().max(400)).max(6), // empty for crisis modes
+  followUp: z.string().max(400),
+  quickReplies: z.array(z.string().max(80)).max(4).default([]),
 });
 export type CoachReply = z.infer<typeof CoachReplySchema>;
 
@@ -23,7 +23,7 @@ export const ApiRequestSchema = z.object({
       })
     )
     .min(1)
-    .max(20),
+    .max(50),
   isFirstTurn: z.boolean().default(false),
 });
 export type ApiRequest = z.infer<typeof ApiRequestSchema>;

@@ -68,11 +68,14 @@ export default function Composer({ onSend, loading }: ComposerProps) {
   const handleStopAndSend = async () => {
     const transcribed = await stopRecording();
     if (transcribed) {
-      const fullText = input.trim() ? `${input.trim()} ${transcribed}` : transcribed;
-      onSend(fullText);
-      setInput("");
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
+      const combined = input.trim() ? `${input.trim()} ${transcribed}` : transcribed;
+      const fullText = combined.slice(0, 1000).trim();
+      if (fullText) {
+        onSend(fullText);
+        setInput("");
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto";
+        }
       }
     }
   };
@@ -198,7 +201,7 @@ export default function Composer({ onSend, loading }: ComposerProps) {
               onKeyDown={handleKeyDown}
               placeholder="Share what's on your mind..."
               disabled={loading}
-              maxLength={1200}
+              maxLength={1000}
               className="w-full resize-none bg-transparent px-4 py-3.5 pr-24 text-sm font-body text-text placeholder:text-muted focus:outline-hidden disabled:opacity-50"
             />
 

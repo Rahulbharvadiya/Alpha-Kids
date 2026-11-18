@@ -28,20 +28,45 @@ assert(assessRisk("My 5-year-old throws tantrums when screen time ends").mode ==
 assert(assessRisk("How to help my toddler sleep through the night?").mode === "normal", "Bedtime query is normal");
 assert(assessRisk("میرا بچہ کھانا نہیں کھاتا").mode === "normal", "Urdu eating concern is normal");
 
-// Self-harm (hard match)
+// Self-harm (hard match) & Stems
 assert(assessRisk("I want to die, I have no reason to live").mode === "self_harm" && assessRisk("I want to die").level === "hard", "English self-harm detected as hard");
+assert(assessRisk("I keep thinking about killing myself").mode === "self_harm" && assessRisk("I keep thinking about killing myself").level === "hard", "Reviewer P0-1: 'killing myself' stem detected");
+assert(assessRisk("I've been hurting myself lately").mode === "self_harm" && assessRisk("I've been hurting myself lately").level === "hard", "Reviewer P0-1: 'hurting myself' stem detected");
+assert(assessRisk("I am ending my life tonight").mode === "self_harm" && assessRisk("I am ending my life tonight").level === "hard", "Reviewer P0-1: 'ending my life' detected");
+assert(assessRisk("I don't want to be alive anymore").mode === "self_harm", "Reviewer P0-1: 'don't want to be alive' detected");
+assert(assessRisk("I want to end it all").mode === "self_harm", "Reviewer P0-1: 'want to end it all' detected");
+assert(assessRisk("My 12 year old said she wants to die").mode === "self_harm", "Reviewer P0-2: Child self-harm statement detected as hard self_harm");
+
 assert(assessRisk("main mar jana chahta hoon").mode === "self_harm" && assessRisk("main mar jana chahta hoon").level === "hard", "Roman Urdu self-harm detected as hard");
 assert(assessRisk("میں اپنی جان لینا چاہتا ہوں").mode === "self_harm" && assessRisk("میں اپنی جان لینا چاہتا ہوں").level === "hard", "Urdu script self-harm detected as hard");
 
-// Emergency (hard match)
+// Emergency (hard match) & Typographic quotes / Negation context
 assert(assessRisk("My child can't breathe, he swallowed a battery").mode === "emergency" && assessRisk("swallowed a battery").level === "hard", "English swallowing battery / not breathing is hard emergency");
+assert(assessRisk("My baby can’t breathe").mode === "emergency", "Reviewer P0-1: Curly apostrophe 'can’t breathe' detected");
+assert(assessRisk("My baby isn't breathing").mode === "emergency", "Reviewer P0-1: 'isn't breathing' detected");
+assert(assessRisk("He is limp and won't wake up").mode === "emergency", "Reviewer P0-1: 'limp and won't wake up' detected");
+
 assert(assessRisk("bacha saans nahi le raha behosh hai").mode === "emergency" && assessRisk("bacha saans nahi le raha").level === "hard", "Roman Urdu breathing/unconscious is hard emergency");
 assert(assessRisk("بچہ بے ہوش ہے اور سانس نہیں لے رہا").mode === "emergency" && assessRisk("بچہ بے ہوش ہے").level === "hard", "Urdu script unconscious is hard emergency");
 
-// Abuse (soft match)
+// False-positive suppression for emergency / medical queries
+assert(assessRisk("My son touched poison ivy").mode === "normal", "Reviewer P2: 'poison ivy' does NOT trigger emergency");
+assert(assessRisk("Daughter is scared of drowning, refuses swim class").mode === "normal", "Reviewer P2: 'scared of drowning' does NOT trigger emergency");
+assert(assessRisk("Child had a febrile seizure last year").mode === "normal", "Reviewer P2: past seizure does NOT trigger emergency");
+assert(assessRisk("Is grape a choking hazard for toddlers?").mode === "normal", "Reviewer P2: 'choking hazard' question does NOT trigger emergency");
+assert(assessRisk("My kid got an overdose of screen time").mode === "normal", "Reviewer P2: 'overdose of screen time' does NOT trigger emergency");
+
+// Abuse & Loss of control
+assert(assessRisk("I shook my baby really hard").mode === "abuse" && assessRisk("I shook my baby really hard").level === "hard", "Reviewer P0-3: Shaken baby pattern triggers hard abuse");
+assert(assessRisk("I slapped my son in anger").mode === "abuse", "Reviewer P0-3: 'slapped my son in anger' detected");
+assert(assessRisk("I spanked my daughter and left a bruise").mode === "abuse", "Reviewer P0-3: 'spanked daughter and left a bruise' detected");
 assert(assessRisk("I hit my child and I'm scared I'm going to hurt him again").mode === "abuse" && assessRisk("I hit my child").level === "soft", "English hitting child detected as soft abuse");
 assert(assessRisk("main ne bachay ko mara hai aur dar hai dobara marunga").mode === "abuse", "Roman Urdu hitting child detected as abuse");
 assert(assessRisk("میں نے اپنے بچے کو مارا ہے").mode === "abuse", "Urdu script hitting child detected as abuse");
+
+// Abuse False-positive suppression
+assert(assessRisk("ہمارا بچہ رات کو نہیں سوتا").mode === "normal", "Reviewer P2: ہمارا (our) does NOT match مارا");
+assert(assessRisk("How do I start sexual education talks?").mode === "normal", "Reviewer P2: 'sexual education' does NOT trigger abuse");
 
 // 3. Most Severe resolution
 console.log("\n--- 3. Severity Resolution Tests ---");
@@ -90,6 +115,40 @@ const legalViolation: CoachReply = {
 };
 const guardedLegal = guardReply(legalViolation, false);
 assert(guardedLegal.understanding.includes("can't diagnose or give medical or legal"), "Legal directive blocked by output guard");
+
+// Reviewer P0-4: Emergency mode precedence (never downgrade crisis to normal fallback)
+const emergWithDosage: CoachReply = {
+  mode: "emergency",
+  language: "en",
+  title: "Emergency help",
+  understanding: "Immediate danger. Do not give 5 ml of anything.",
+  plan: ["Call emergency immediately"],
+  followUp: "Have you called for help?",
+  quickReplies: [],
+};
+const guardedEmerg = guardReply(emergWithDosage, false);
+assert(guardedEmerg.mode === "emergency", "Reviewer P0-4: Emergency reply containing dosage keeps emergency mode and is NOT downgraded to normal");
+
+// Reviewer P0-5: Urdu script dosage and medication guarding
+const urduDosageViolation: CoachReply = {
+  mode: "normal",
+  language: "ur",
+  title: "طبی رہنمائی",
+  understanding: "بچے کو 5 ملی گرام پیراسیٹامول دیں۔",
+  plan: ["آرام کرنے دیں"],
+  followUp: "کیا بخار کم ہوا؟",
+  quickReplies: [],
+};
+const guardedUrduDosage = guardReply(urduDosageViolation, true);
+assert(guardedUrduDosage.understanding.includes("میں اس سوال پر تشخیص یا طبی اور قانونی ہدایات نہیں دے سکتا"), "Reviewer P0-5: Urdu script dosage and medication blocked by guard");
+
+// Reviewer P0-5: Nuanced diagnostic phrase ("He may have ADHD")
+const adhdMayHaveViolation: CoachReply = {
+  ...normalReply,
+  understanding: "He may have ADHD based on these signs.",
+};
+const guardedAdhd = guardReply(adhdMayHaveViolation, false);
+assert(guardedAdhd.understanding.includes("can't diagnose"), "Reviewer P0-5: 'He may have ADHD' blocked by output guard");
 
 // 6. RTL and Urdu Detection
 console.log("\n--- 6. RTL Detection Tests ---");
